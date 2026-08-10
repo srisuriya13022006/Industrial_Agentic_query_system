@@ -5,7 +5,7 @@ from backend.vectorstore.faiss_manager import FaissManager
 class VectorService:
 
     def __init__(self):
-        print("🔥 VectorService initialized")
+        print("[INFO] VectorService initialized")
 
         self.embedding_service = EmbeddingService()
         self.faiss = FaissManager()
@@ -18,7 +18,7 @@ class VectorService:
 
         for idx, chunk in enumerate(chunks):
 
-            print(f"\n➡ Adding Chunk {idx}")
+            print(f"\n-> Adding Chunk {idx}")
 
             embedding = self.embedding_service.create_embedding(chunk)
 
@@ -28,14 +28,14 @@ class VectorService:
                 "text": chunk
             }
 
-            print("Embedding Created ✓")
+            print("Embedding Created [OK]")
 
             self.faiss.add_chunk(
                 metadata,
                 embedding
             )
 
-        print("\n✓ All Chunks Stored")
+        print("\n[OK] All Chunks Stored")
 
     def search(self, query):
 

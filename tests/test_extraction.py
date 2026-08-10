@@ -8,7 +8,7 @@ Technician Raj replaced the bearing.
 Lubrication completed.
 """
 
-results = agent.extract(sample_text)
+results = agent.process(sample_text)
 
 for item in results:
 

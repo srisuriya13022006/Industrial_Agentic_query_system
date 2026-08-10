@@ -24,19 +24,19 @@ class ProcessingPipeline:
         # Step 1
         text = self.ingestion_agent.ingest(file_path)
 
-        print("✓ Text Extracted")
+        print("[OK] Text Extracted")
 
         # Step 2
         knowledge = self.extraction_agent.process(text)
 
-        print("✓ Knowledge Extracted")
+        print("[OK] Knowledge Extracted")
 
         # Step 3
         for chunk in knowledge:
 
             self.graph_service.store(chunk)
 
-        print("✓ Stored in Neo4j")
+        print("[OK] Stored in Neo4j")
 
         # Step 4
         chunks = [
@@ -50,7 +50,7 @@ class ProcessingPipeline:
         chunks,
         document_name
                         )
-        print("✓ Stored in FAISS")
+        print("[OK] Stored in FAISS")
 
         print("\n========== PIPELINE COMPLETED ==========")
 

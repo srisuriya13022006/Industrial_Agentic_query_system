@@ -17,14 +17,16 @@ class ExtractionAgent:
 
         for chunk in chunks:
 
-            knowledge = self.knowledge_service.extract_knowledge(chunk)
+            try:
+                knowledge = self.knowledge_service.extract_knowledge(chunk)
+                results.append(
+                    {
+                        "chunk": chunk,
+                        "entities": knowledge.get("entities", []),
+                        "relationships": knowledge.get("relationships", [])
+                    }
+                )
+            except Exception as e:
+                print(f"   [WARNING] Knowledge extraction failed for chunk due to API error: {e}")
 
-            results.append(
-                {
-                    "chunk": chunk,
-                    "entities": knowledge["entities"],
-                    "relationships": knowledge["relationships"]
-                }
-            )
-
-        return results
+        return results

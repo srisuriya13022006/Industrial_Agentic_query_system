@@ -9,7 +9,7 @@ class FaissManager:
 
     def __init__(self):
 
-        print("🔥 FaissManager Initialized")
+        print("[INFO] FaissManager Initialized")
 
         self.dimension = 768
 
@@ -22,7 +22,7 @@ class FaissManager:
             exist_ok=True
         )
 
-        print("Vector Store Folder Ready ✓")
+        print("Vector Store Folder Ready [OK]")
 
         if os.path.exists(self.index_path):
 
@@ -109,7 +109,7 @@ class FaissManager:
 
         if self.index.ntotal == 0:
 
-            print("⚠ Index Empty")
+            print("[WARNING] Index Empty")
 
             return []
 
