@@ -18,7 +18,7 @@ class ImageParser:
             api_key=GEMINI_API_KEY
         )
 
-    def extract_text(self, file_path: str) -> str:
+    def extract_text(self, file_path: str) -> list:
         """
         Extract text content from an image using Gemini Vision.
         For P&ID diagrams, also extracts equipment tags and symbols.
@@ -62,7 +62,12 @@ class ImageParser:
             ]
         )
 
-        return response.text
+        return [{
+            "text": response.text,
+            "metadata": {
+                "page": 1
+            }
+        }]
 
     def _load_image(self, file_path: str) -> dict:
         """

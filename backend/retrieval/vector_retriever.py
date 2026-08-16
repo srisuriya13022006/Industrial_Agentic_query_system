@@ -16,6 +16,9 @@ class VectorRetriever:
 
         for item in results:
 
+            distance = item.get("distance", 2.0)
+            similarity = max(0.0, min(1.0, 1.0 - (distance / 2.0)))
+
             output.append(
 
                 RetrievalResult(
@@ -28,7 +31,13 @@ class VectorRetriever:
 
                         "document": item["document"],
 
-                        "chunk_id": item["chunk_id"]
+                        "chunk_id": item["chunk_id"],
+
+                        "page": item.get("page"),
+
+                        "sheet": item.get("sheet"),
+
+                        "similarity": similarity
 
                     }
 

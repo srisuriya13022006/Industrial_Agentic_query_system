@@ -7,7 +7,7 @@ class ExcelParser:
     Converts tabular data into readable text format.
     """
 
-    def extract_text(self, file_path: str) -> str:
+    def extract_text(self, file_path: str) -> list:
         """
         Extract all content from an Excel/CSV file.
         Each sheet is processed separately for Excel files.
@@ -18,19 +18,26 @@ class ExcelParser:
 
         return self._parse_excel(file_path)
 
-    def _parse_csv(self, file_path: str) -> str:
+    def _parse_csv(self, file_path: str) -> list:
         """Parse a CSV file into text."""
 
         df = pd.read_csv(file_path)
 
-        return self._dataframe_to_text(df, "CSV Data")
+        text = self._dataframe_to_text(df, "CSV Data")
+        return [{
+            "text": text,
+            "metadata": {
+                "sheet": "CSV Data",
+                "page": 1
+            }
+        }]
 
-    def _parse_excel(self, file_path: str) -> str:
+    def _parse_excel(self, file_path: str) -> list:
         """Parse an Excel file, processing all sheets."""
 
         excel_file = pd.ExcelFile(file_path)
 
-        text_parts = []
+        pages = []
 
         for sheet_name in excel_file.sheet_names:
 
@@ -44,9 +51,15 @@ class ExcelParser:
                 f"Sheet: {sheet_name}"
             )
 
-            text_parts.append(sheet_text)
+            pages.append({
+                "text": sheet_text,
+                "metadata": {
+                    "sheet": sheet_name,
+                    "page": 1
+                }
+            })
 
-        return "\n\n".join(text_parts)
+        return pages
 
     def _dataframe_to_text(self, df: pd.DataFrame, title: str) -> str:
         """

@@ -10,22 +10,26 @@ class VectorService:
         self.embedding_service = EmbeddingService()
         self.faiss = FaissManager()
 
-    def store_chunks(self, chunks, document_name="Unknown"):
+    def store_chunks(self, chunks_data, document_name="Unknown"):
 
         print("\n================ VECTOR SERVICE ================")
         print(f"Document Name : {document_name}")
-        print(f"Total Chunks  : {len(chunks)}")
+        print(f"Total Chunks  : {len(chunks_data)}")
 
-        for idx, chunk in enumerate(chunks):
+        for idx, item in enumerate(chunks_data):
 
             print(f"\n-> Adding Chunk {idx}")
+            chunk = item["text"]
+            page_meta = item["metadata"]
 
             embedding = self.embedding_service.create_embedding(chunk)
 
             metadata = {
                 "chunk_id": idx,
                 "document": document_name,
-                "text": chunk
+                "text": chunk,
+                "page": page_meta.get("page", 1),
+                "sheet": page_meta.get("sheet")
             }
 
             print("Embedding Created [OK]")

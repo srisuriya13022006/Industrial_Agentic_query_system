@@ -22,12 +22,12 @@ class ProcessingPipeline:
         print("\n========== PIPELINE STARTED ==========")
 
         # Step 1
-        text = self.ingestion_agent.ingest(file_path)
+        pages = self.ingestion_agent.ingest(file_path)
 
         print("[OK] Text Extracted")
 
         # Step 2
-        knowledge = self.extraction_agent.process(text)
+        knowledge = self.extraction_agent.process(pages)
 
         print("[OK] Knowledge Extracted")
 
@@ -39,17 +39,20 @@ class ProcessingPipeline:
         print("[OK] Stored in Neo4j")
 
         # Step 4
-        chunks = [
-            item["chunk"]
+        chunks_data = [
+            {
+                "text": item["chunk"],
+                "metadata": item["metadata"]
+            }
             for item in knowledge
         ]
 
         document_name = os.path.basename(file_path)
 
         self.vector_service.store_chunks(
-        chunks,
-        document_name
-                        )
+            chunks_data,
+            document_name
+        )
         print("[OK] Stored in FAISS")
 
         print("\n========== PIPELINE COMPLETED ==========")

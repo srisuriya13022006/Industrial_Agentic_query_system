@@ -48,10 +48,11 @@ class HybridRetriever:
                 entity_results = self.graph_retriever.retrieve(entity)
                 graph_results.extend(entity_results)
 
-                print(f"   Entity '{entity}' → {len(entity_results)} relations")
+                print(f"   Entity '{entity}' -> {len(entity_results)} relations")
 
             except Exception as e:
-                print(f"   [WARNING] Graph lookup failed for '{entity}': {e}")
+                err_msg = str(e).encode('ascii', 'replace').decode('ascii')
+                print(f"   [WARNING] Graph lookup failed for '{entity}': {err_msg}")
 
         print(f"   Total graph results: {len(graph_results)}")
 
@@ -73,13 +74,20 @@ class HybridRetriever:
 
         for i, result in enumerate(vector_results):
 
-            source = ""
-
+            source_parts = []
             if result.metadata.get("document"):
-                source = f" (Source: {result.metadata['document']})"
+                source_parts.append(f"document: {result.metadata['document']}")
+            if result.metadata.get("page"):
+                source_parts.append(f"page: {result.metadata['page']}")
+            if result.metadata.get("sheet"):
+                source_parts.append(f"sheet: {result.metadata['sheet']}")
+            if result.metadata.get("similarity") is not None:
+                source_parts.append(f"similarity: {result.metadata['similarity']:.2f}")
+
+            source = f" (Source: {', '.join(source_parts)})" if source_parts else ""
 
             parts.append(
-                f"[Document Chunk {i + 1}]{source}\n{result.content}"
+                f"[Document Chunk {result.metadata.get('chunk_id') or i}]{source}\n{result.content}"
             )
 
         return "\n\n".join(parts)

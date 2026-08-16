@@ -7,7 +7,7 @@ class DocxParser:
     Handles paragraphs and tables.
     """
 
-    def extract_text(self, file_path: str) -> str:
+    def extract_text(self, file_path: str) -> list:
         """
         Extract all text from a DOCX file.
         Includes paragraph text and table content.
@@ -42,4 +42,9 @@ class DocxParser:
                 if row_text:
                     text_parts.append(" | ".join(row_text))
 
-        return "\n".join(text_parts)
+        return [{
+            "text": "\n".join(text_parts),
+            "metadata": {
+                "page": 1
+            }
+        }]

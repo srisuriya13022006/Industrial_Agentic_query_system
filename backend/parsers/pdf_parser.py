@@ -7,18 +7,23 @@ class PDFParser:
     Handles both text-based and simple scanned PDFs.
     """
 
-    def extract_text(self, file_path: str) -> str:
+    def extract_text(self, file_path: str) -> list:
         """
         Extract all text from a PDF file, page by page.
         """
 
         document = pymupdf.open(file_path)
 
-        text = ""
+        pages = []
 
-        for page in document:
-            text += page.get_text()
+        for i, page in enumerate(document):
+            pages.append({
+                "text": page.get_text(),
+                "metadata": {
+                    "page": i + 1
+                }
+            })
 
         document.close()
 
-        return text
+        return pages

@@ -9,24 +9,29 @@ class ExtractionAgent:
         self.chunker = ChunkingService()
         self.knowledge_service = KnowledgeExtractionService()
 
-    def process(self, text: str):
-
-        chunks = self.chunker.split_text(text)
+    def process(self, pages: list):
 
         results = []
 
-        for chunk in chunks:
+        for page in pages:
+            page_text = page["text"]
+            page_meta = page["metadata"]
 
-            try:
-                knowledge = self.knowledge_service.extract_knowledge(chunk)
-                results.append(
-                    {
-                        "chunk": chunk,
-                        "entities": knowledge.get("entities", []),
-                        "relationships": knowledge.get("relationships", [])
-                    }
-                )
-            except Exception as e:
-                print(f"   [WARNING] Knowledge extraction failed for chunk due to API error: {e}")
+            chunks = self.chunker.split_text(page_text)
+
+            for chunk in chunks:
+
+                try:
+                    knowledge = self.knowledge_service.extract_knowledge(chunk)
+                    results.append(
+                        {
+                            "chunk": chunk,
+                            "metadata": page_meta,
+                            "entities": knowledge.get("entities", []),
+                            "relationships": knowledge.get("relationships", [])
+                        }
+                    )
+                except Exception as e:
+                    print(f"   [WARNING] Knowledge extraction failed for chunk due to API error: {e}")
 
         return results

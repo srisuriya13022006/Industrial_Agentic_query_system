@@ -127,13 +127,13 @@ class FaissManager:
 
         results = []
 
-        for idx in indices[0]:
+        for i, idx in enumerate(indices[0]):
 
             if idx != -1:
 
-                results.append(
-                    self.metadata[idx]
-                )
+                meta = self.metadata[idx].copy()
+                meta["distance"] = float(distances[0][i])
+                results.append(meta)
 
         print("Results Found :", len(results))
 

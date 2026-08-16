@@ -30,4 +30,5 @@ for question in test_questions:
         print("\n[FOLLOW-UP SUGGESTIONS]")
         print(result["follow_up_suggestions"])
     except Exception as e:
-        print(f"\n❌ Error executing query: {e}")
+        err_msg = str(e).encode('ascii', 'replace').decode('ascii')
+        print(f"\n[ERROR] Error executing query: {err_msg}")

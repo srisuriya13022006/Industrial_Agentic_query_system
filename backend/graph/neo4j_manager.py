@@ -71,3 +71,10 @@ class Neo4jManager:
             )
 
             return [record.data() for record in result]
+
+    def get_node_label(self, entity_id):
+        query = "MATCH (n {id: $id}) RETURN labels(n)[0] AS label"
+        with self.driver.session(database="neo4j") as session:
+            result = session.run(query, id=entity_id)
+            record = result.single()
+            return record["label"] if record else None

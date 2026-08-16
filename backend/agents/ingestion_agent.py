@@ -19,12 +19,12 @@ class IngestionAgent:
         self.excel_parser = ExcelParser()
         self.image_parser = ImageParser()
 
-    def ingest(self, file_path: str) -> str:
+    def ingest(self, file_path: str) -> list:
         """
         Ingest a document file by detecting its type and
         routing to the appropriate parser.
 
-        Returns cleaned, machine-readable text.
+        Returns list of page dicts with text and metadata.
         """
 
         file_type = detect_file_type(file_path)
@@ -33,24 +33,30 @@ class IngestionAgent:
         print(f"   File: {file_path}")
 
         if file_type == 'pdf':
-            text = self.pdf_parser.extract_text(file_path)
+            pages = self.pdf_parser.extract_text(file_path)
 
         elif file_type == 'docx':
-            text = self.docx_parser.extract_text(file_path)
+            pages = self.docx_parser.extract_text(file_path)
 
         elif file_type == 'excel':
-            text = self.excel_parser.extract_text(file_path)
+            pages = self.excel_parser.extract_text(file_path)
 
         elif file_type == 'image':
-            text = self.image_parser.extract_text(file_path)
+            pages = self.image_parser.extract_text(file_path)
 
         else:
             print(f"   [WARNING] Unsupported file type: {file_type}")
-            return ""
+            return []
 
-        # Clean the extracted text
-        text = clean_text(text)
+        # Clean the text in each page
+        cleaned_pages = []
+        for page in pages:
+            cleaned_text = clean_text(page["text"])
+            cleaned_pages.append({
+                "text": cleaned_text,
+                "metadata": page["metadata"]
+            })
 
-        print(f"   [OK] Extracted {len(text)} characters")
+        print(f"   [OK] Extracted {len(cleaned_pages)} pages/sheets")
 
-        return text
+        return cleaned_pages
