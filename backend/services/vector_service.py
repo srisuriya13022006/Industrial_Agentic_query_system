@@ -25,11 +25,14 @@ class VectorService:
             embedding = self.embedding_service.create_embedding(chunk)
 
             metadata = {
-                "chunk_id": idx,
-                "document": document_name,
-                "text": chunk,
-                "page": page_meta.get("page", 1),
-                "sheet": page_meta.get("sheet")
+                "chunk_id":    idx,
+                "document":    document_name,
+                "text":        chunk,
+                "page":        page_meta.get("page", 1),
+                "sheet":       page_meta.get("sheet"),
+                "section":     page_meta.get("section"),
+                "entity_ids":  page_meta.get("entity_ids", []),
+                "evidence_type": page_meta.get("evidence_type", "UNKNOWN"),
             }
 
             print("Embedding Created [OK]")

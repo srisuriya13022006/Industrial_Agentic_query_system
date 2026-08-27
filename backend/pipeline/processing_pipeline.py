@@ -1,60 +1,47 @@
-from backend.agents.ingestion_agent import IngestionAgent
-from backend.agents.extraction_agent import ExtractionAgent
+"""
+Document Processing Pipeline — LangGraph Orchestrated
+======================================================
+Coordinates document ingestion, chunking, LLM knowledge extraction,
+Neo4j Knowledge Graph persistence, and FAISS Vector Store persistence via LangGraph.
+"""
 
-from backend.services.graph_service import GraphService
-from backend.services.vector_service import VectorService
-import os
+from typing import Any, Dict, List
+from backend.workflows.ingestion_workflow import create_ingestion_workflow
+
 
 class ProcessingPipeline:
+    """
+    Orchestrates end-to-end document processing via a compiled LangGraph StateGraph.
+    """
 
     def __init__(self):
+        print("[INFO] Initializing ProcessingPipeline with LangGraph workflow...")
+        self.workflow = create_ingestion_workflow()
+        print("[OK] LangGraph Ingestion Workflow compiled.")
 
-        self.ingestion_agent = IngestionAgent()
+    def process(self, file_path: str) -> List[Dict[str, Any]]:
+        """
+        Process a file path through the LangGraph Ingestion StateGraph.
+        Returns the extracted knowledge list.
+        """
+        print(f"\n================ LANGGRAPH INGESTION PIPELINE STARTED ================")
+        print(f"File Path: {file_path}")
 
-        self.extraction_agent = ExtractionAgent()
+        initial_state = {
+            "file_path": file_path,
+            "document_name": "",
+            "pages": [],
+            "knowledge": [],
+            "chunks_data": [],
+            "graph_stored": False,
+            "vector_stored": False,
+            "status": "started",
+            "error": None,
+        }
 
-        self.graph_service = GraphService()
+        final_state = self.workflow.invoke(initial_state)
 
-        self.vector_service = VectorService()
+        print(f"Status: {final_state.get('status')}")
+        print(f"================ LANGGRAPH INGESTION PIPELINE COMPLETED ================\n")
 
-    def process(self, file_path: str):
-
-        print("\n========== PIPELINE STARTED ==========")
-
-        # Step 1
-        pages = self.ingestion_agent.ingest(file_path)
-
-        print("[OK] Text Extracted")
-
-        # Step 2
-        knowledge = self.extraction_agent.process(pages)
-
-        print("[OK] Knowledge Extracted")
-
-        # Step 3
-        for chunk in knowledge:
-
-            self.graph_service.store(chunk)
-
-        print("[OK] Stored in Neo4j")
-
-        # Step 4
-        chunks_data = [
-            {
-                "text": item["chunk"],
-                "metadata": item["metadata"]
-            }
-            for item in knowledge
-        ]
-
-        document_name = os.path.basename(file_path)
-
-        self.vector_service.store_chunks(
-            chunks_data,
-            document_name
-        )
-        print("[OK] Stored in FAISS")
-
-        print("\n========== PIPELINE COMPLETED ==========")
-
-        return knowledge
+        return final_state.get("knowledge", [])

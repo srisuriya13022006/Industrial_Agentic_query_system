@@ -1,136 +1,85 @@
-import json
-from backend.llm.gemini_service import GeminiService
-from backend.retrieval.hybrid_retriever import HybridRetriever
-from backend.prompts.query_prompts import (
-    ENTITY_EXTRACTION_FROM_QUERY_PROMPT,
-    EVIDENCE_VALIDATION_PROMPT,
-    ANSWER_GENERATION_PROMPT
-)
-from backend.utils.helpers import safe_json_parse
+"""
+Query Agent (Expert Copilot) — LangGraph Orchestrated
+======================================================
+Agent 3 orchestrates multi-hop reasoning, entity extraction, canonicalization,
+hybrid retrieval (reranked vectors + 3-tier graph traversal), contradiction detection,
+evidence validation, corrective graph hops, grounded answer generation,
+citation verification, and confidence calibration via LangGraph.
+"""
+
+from typing import Any, Dict
+from backend.workflows.query_workflow import create_query_workflow
 
 
 class QueryAgent:
     """
     Agent 3 — Query Agent (Expert Copilot).
-    Interprets natural-language questions, extracts entities, retrieves relevant context
-    using the Hybrid Retriever (Vector DB semantic search + Neo4j Graph traversal),
-    and generates a detailed, cited, confidence-scored answer.
+
+    Powered by a compiled LangGraph StateGraph workflow that performs stateful,
+    corrective, multi-step RAG reasoning with full observability.
     """
 
     def __init__(self):
-        self.llm = GeminiService()
-        self.retriever = HybridRetriever()
+        print("[INFO] Initializing QueryAgent with LangGraph workflow...")
+        self.workflow = create_query_workflow()
+        print("[OK] LangGraph Query Workflow compiled.")
 
-    def query(self, question: str) -> dict:
+    def query(self, question: str) -> Dict[str, Any]:
         """
-        Processes a user question and returns a cited response.
+        Process a user question through the LangGraph StateGraph.
+
+        Returns a dictionary matching the QueryResponse model schema:
+          - answer: str
+          - confidence: float
+          - sources: List[dict]
+          - graph_context: List[str]
+          - key_entities: List[str]
+          - follow_up_suggestions: List[str]
+          - evidence_classification: List[dict]
+          - contradictions: List[str]
+          - canonical_entities: List[dict]
+          - sub_questions: List[str]
         """
-        print(f"\n[QUERY] Query Agent — Received Question: '{question}'")
+        print(f"\n================ LANGGRAPH QUERY EXECUTION ================")
+        print(f"Question: '{question}'")
 
-        # Step 1: Extract entities from user question to use in Graph retrieval
-        extracted_entities = self._extract_entities(question)
-        print(f"   Extracted entities for Graph lookup: {extracted_entities}")
-
-        # Step 2: Fetch hybrid context
-        retrieval_data = self.retriever.retrieve(question, extracted_entities)
-        
-        vector_context = self.retriever.format_vector_context(retrieval_data["vector_results"])
-        graph_context = self.retriever.format_graph_context(retrieval_data["graph_results"])
-
-        # Step 3: Run Evidence Validation
-        print("   Validating evidence...")
-        validation_prompt = EVIDENCE_VALIDATION_PROMPT.format(
-            question=question,
-            vector_context=vector_context,
-            graph_context=graph_context
-        )
-        validation_response = self.llm.generate(validation_prompt)
-        validation_response = validation_response.replace("```json", "").replace("```", "").strip()
-        validation_report = safe_json_parse(validation_response)
-
-        # Step 4: Format query generation prompt
-        print("   Generating cited answer based on validated findings...")
-        generation_prompt = ANSWER_GENERATION_PROMPT.format(
-            question=question,
-            validation_report=json.dumps(validation_report, indent=2)
-        )
-
-        # Step 5: Generate response from LLM
-        llm_response = self.llm.generate(generation_prompt)
-        llm_response = llm_response.replace("```json", "").replace("```", "").strip()
-        parsed_result = safe_json_parse(llm_response)
-        
-        # Structure final output and ensure fallbacks are provided
-        answer = parsed_result.get("answer", "I'm sorry, I could not generate an answer based on the retrieved context.")
-        sources = parsed_result.get("sources", [])
-        for src in sources:
-            if "name" in src and "document" not in src:
-                src["document"] = src["name"]
-            elif "document" in src and "name" not in src:
-                src["name"] = src["document"]
-        key_entities = parsed_result.get("key_entities", extracted_entities)
-        follow_up = parsed_result.get("follow_up_suggestions", [])
-
-        # Programmatically Calculate Confidence Score
-        top_vector_sim = 0.0
-        if retrieval_data.get("vector_results"):
-            top_vector_sim = max([res.metadata.get("similarity", 0.0) for res in retrieval_data["vector_results"]])
-
-        directness = validation_report.get("evidence_directness", 0.5)
-        graph_support = 1.0 if len(retrieval_data.get("graph_results", [])) > 0 else 0.0
-
-        entity_match = 0.0
-        if extracted_entities:
-            matched = 0
-            top_chunks_text = " ".join([res.content.lower() for res in retrieval_data.get("vector_results", [])[:2]])
-            graph_text = ""
-            for res in retrieval_data.get("graph_results", []):
-                if isinstance(res.content, dict):
-                    graph_text += f" {res.content.get('source', '')} {res.content.get('target', '')}".lower()
-            for ent in extracted_entities:
-                if ent.lower() in top_chunks_text or ent.lower() in graph_text:
-                    matched += 1
-            entity_match = matched / len(extracted_entities)
-
-        calibrated = (
-            0.40 * top_vector_sim +
-            0.30 * directness +
-            0.20 * graph_support +
-            0.10 * entity_match
-        )
-        confidence = round(min(0.95, calibrated), 2)
-
-        # Format graph context for reporting
-        formatted_graph_relations = []
-        for res in retrieval_data["graph_results"]:
-            content = res.content
-            if isinstance(content, dict):
-                formatted_graph_relations.append(
-                    f"{content.get('source')} -[{content.get('relationship')}]-> {content.get('target')}"
-                )
-            else:
-                formatted_graph_relations.append(str(content))
-
-        return {
-            "answer": answer,
-            "confidence": confidence,
-            "sources": sources,
-            "graph_context": formatted_graph_relations,
-            "key_entities": key_entities,
-            "follow_up_suggestions": follow_up,
-            "evidence_classification": validation_report.get("findings", [])
+        initial_state = {
+            "question": question,
+            "hop_count": 0,
+            "raw_entities": [],
+            "canonical_entities": [],
+            "intents": [],
+            "sub_questions": [],
+            "vector_results": [],
+            "graph_results": [],
+            "contradictions": [],
+            "validation_report": {},
+            "answer": "",
+            "sources": [],
+            "key_entities": [],
+            "follow_up_suggestions": [],
+            "confidence": 0.0,
+            "formatted_graph_relations": [],
         }
 
-    def _extract_entities(self, question: str) -> list:
-        """
-        Uses the LLM to extract key entity tags from a user question.
-        """
-        prompt = ENTITY_EXTRACTION_FROM_QUERY_PROMPT.format(question=question)
-        
-        try:
-            response = self.llm.generate(prompt)
-            data = safe_json_parse(response)
-            return data.get("entities", [])
-        except Exception as e:
-            print(f"   [WARNING] Failed to extract entities from query: {e}")
-            return []
+        # Run compiled LangGraph workflow
+        final_state = self.workflow.invoke(initial_state)
+
+        val_report = final_state.get("validation_report", {})
+        findings = val_report.get("findings", [])
+
+        result = {
+            "answer": final_state.get("answer", "I'm sorry, I could not generate an answer based on the retrieved context."),
+            "confidence": final_state.get("confidence", 0.0),
+            "sources": final_state.get("sources", []),
+            "graph_context": final_state.get("formatted_graph_relations", []),
+            "key_entities": final_state.get("key_entities", final_state.get("raw_entities", [])),
+            "follow_up_suggestions": final_state.get("follow_up_suggestions", []),
+            "evidence_classification": findings,
+            "contradictions": final_state.get("contradictions", []),
+            "canonical_entities": final_state.get("canonical_entities", []),
+            "sub_questions": final_state.get("sub_questions", []),
+        }
+
+        print(f"================ LANGGRAPH QUERY COMPLETE (Confidence: {result['confidence']}) ================\n")
+        return result

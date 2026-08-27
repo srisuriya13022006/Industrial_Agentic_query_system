@@ -29,15 +29,21 @@ class VectorRetriever:
 
                     metadata={
 
-                        "document": item["document"],
+                        "document":      item["document"],
 
-                        "chunk_id": item["chunk_id"],
+                        "chunk_id":      item["chunk_id"],
 
-                        "page": item.get("page"),
+                        "page":          item.get("page"),
 
-                        "sheet": item.get("sheet"),
+                        "sheet":         item.get("sheet"),
 
-                        "similarity": similarity
+                        "section":       item.get("section"),
+
+                        "entity_ids":    item.get("entity_ids", []),
+
+                        "evidence_type": item.get("evidence_type", "UNKNOWN"),
+
+                        "similarity":    similarity
 
                     }
 
