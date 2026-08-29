@@ -99,5 +99,46 @@ export const apiClient = {
         ]
       };
     }
+  },
+
+  /**
+   * Fetch live Neo4j Knowledge Graph nodes and edges
+   */
+  async getGraphData(entity = null, limit = 80) {
+    try {
+      const url = new URL(`${API_BASE_URL}/graph/data`);
+      if (entity) url.searchParams.append("entity", entity);
+      if (limit) url.searchParams.append("limit", limit.toString());
+
+      const response = await fetch(url.toString(), {
+        method: "GET",
+        headers: { "Content-Type": "application/json" }
+      });
+
+      if (!response.ok) throw new Error("Failed to fetch graph data");
+      return await response.json();
+    } catch (err) {
+      console.warn("Live graph fetch failed, falling back:", err);
+      return null;
+    }
+  },
+
+  /**
+   * Fetch live Neo4j statistics
+   */
+  async getGraphStats() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/graph/stats`, {
+        method: "GET",
+        headers: { "Content-Type": "application/json" }
+      });
+
+      if (!response.ok) throw new Error("Failed to fetch graph stats");
+      return await response.json();
+    } catch (err) {
+      console.warn("Live graph stats fetch failed:", err);
+      return null;
+    }
   }
 };
+
