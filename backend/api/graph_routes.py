@@ -29,11 +29,11 @@ def get_graph_data(limit: int = Query(100, ge=10, le=300), entity: Optional[str]
     """
     try:
         if entity:
-            # Multi-hop subgraph around the entity
+            # 1-hop ego subgraph around the entity (focused, avoids clutter)
             nodes_cypher = """
-            MATCH path = (a)-[*1..2]-(b)
+            MATCH (a)-[*1]-(b)
             WHERE a.name = $entity OR a.id = $entity
-            UNWIND nodes(path) AS n
+            UNWIND [a, b] AS n
             RETURN DISTINCT
                 coalesce(n.name, n.id) AS id,
                 coalesce(n.name, n.id) AS label,
@@ -42,13 +42,12 @@ def get_graph_data(limit: int = Query(100, ge=10, le=300), entity: Optional[str]
             LIMIT $limit
             """
             edges_cypher = """
-            MATCH path = (a)-[r*1..2]-(b)
+            MATCH (a)-[r]-(b)
             WHERE a.name = $entity OR a.id = $entity
-            UNWIND relationships(path) AS rel
             RETURN DISTINCT
-                coalesce(startNode(rel).name, startNode(rel).id) AS source,
-                type(rel) AS label,
-                coalesce(endNode(rel).name, endNode(rel).id) AS target
+                coalesce(startNode(r).name, startNode(r).id) AS source,
+                type(r) AS label,
+                coalesce(endNode(r).name, endNode(r).id) AS target
             LIMIT $limit
             """
             nodes_raw = neo4j_manager.run_cypher(nodes_cypher, {"entity": entity, "limit": limit})
